@@ -18,6 +18,8 @@ class Controller {
     }
     
     public function exec() {
+      // начать работу с сессией
+      session_start();
       // получить действие
       $action = '';
       if (isset($_REQUEST['action']) && $_REQUEST['action'] != '') {

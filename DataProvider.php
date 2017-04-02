@@ -69,16 +69,17 @@ class DataProvider {
             $error = $this->link->error;
             return null;
         }
+        $stmt->store_result();
         if ($stmt->num_rows > 0) {
             // привязать результаты
-            if (!$select->bind_result($userId)) {
+            if (!$stmt->bind_result($userId)) {
                 // записать переменные
                 $error = $this->link->error;
                 // return
                 return null;
             }
             // получить первый результат в переменную 
-            while ($select->fetch()) {
+            while ($stmt->fetch()) {
                 return userId;
             }
             // вернуть переменную
