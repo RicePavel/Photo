@@ -22,6 +22,18 @@ class DataProvider {
         }
     }
 
+    public function startTransaction() {
+        $this->link->begin_transaction();
+    }
+    
+    public function commitTransaction() {
+        $this->link->commit();
+    }
+    
+    public function rollbackTransaction() {
+        $this->link->rollback();
+    }
+    
     public function existUser($login, &$error) {
         $stmt = $this->link->prepare('select user_id from users where login = ?');
         if (!$stmt) {
@@ -80,7 +92,7 @@ class DataProvider {
             }
             // получить первый результат в переменную 
             while ($stmt->fetch()) {
-                return userId;
+                return $userId;
             }
             // вернуть переменную
         } else {
@@ -88,6 +100,37 @@ class DataProvider {
         }
     }
 
+    /**
+     * 
+     * @param type $userId
+     * @param type $fileName
+     * @param type $header
+     * @param type $decsription
+     * @return id сохраненного файла
+     */
+    public function saveFile($userId, $fileName, $header, $decsription, &$error) {
+        $stmt = $this->link->prepare(' insert into photo (user_id, photo_name, header, description ) values (?, ?, ?, ?) ');
+        if (!$stmt) {
+            $error = $this->link->error;
+            return null;
+        }
+        // привязать параметры
+        if (!$stmt->bind_param('isss', $userId, $fileName, $header, $description)) {
+            // проверить ошибки
+           $error = $this->link->error;
+           return null; 
+        }
+        if (!$stmt->execute()) {
+            // выполнить запрос
+            // проверить ошибки
+           $error = $this->link->error;
+           $err = mysqli_error($this->link);
+           return null; 
+        }
+        // получить ид добавленной записи
+        return $this->link->insert_id;
+    }
+    
     /**
      * зарегитрировать пользователя
      * @param type $login
