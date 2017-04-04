@@ -6,6 +6,8 @@
  * and open the template in the editor.
  */
 
+require_once 'Photo.php';
+
 class DataProvider {
 
     const HOST = 'localhost';
@@ -32,6 +34,99 @@ class DataProvider {
     
     public function rollbackTransaction() {
         $this->link->rollback();
+    }
+    
+    public function deletePhotos($photoIdArray, &$error) {
+        
+    }
+     
+    /**
+     * изменить параметры фотографии
+     * @param type $photoId
+     * @param type $header
+     * @param type $description
+     * @return boolean
+     */
+    public function changePhoto($photoId, $header, $description, &$error) {
+        $stmt = $this->link->prepare(' update photo set header = ?, description = ? where photo_id = ? ');
+        if (!$stmt) {
+            $error = $this->link->error;
+            return false;
+        }
+        if (!$stmt->bind_param('ssi', $header, $description, $photoId)) {
+            $error = $this->link->error;
+            return false;
+        }
+        if (!$stmt->execute()) {
+            $error = $this->link->error;
+            return false;
+        }
+        return true;
+    }
+    
+    /**
+     * 
+     * @param type $photoId
+     * @param type $error
+     * @return Photo объект фотографии
+     */
+    public function getPhoto($photoId, &$error) {
+        $stmt = $this->link->prepare(' select photo_id, user_id, photo_name, header, description from photo where photo_id = ? ');
+        if (!$stmt) {
+            $error = $this->link->error;
+            return null;
+        }
+        if (!$stmt->bind_param('i', $photoId)) {
+            $error = $this->link->error;
+            return null;
+        }
+        if (!$stmt->execute()) {
+            $error = $this->link->error;
+            return null;
+        }
+        if (!$stmt->bind_result($photoId, $userId, $photoName, $header, $description)) {
+            $error = $this->link->error;
+            return null;
+        }
+        while ($stmt->fetch()) {
+            $photo = new Photo($photoId, $userId, $photoName, $header, $description, '');
+            return $photo;
+        }
+        return null;
+    }
+    
+    /**
+     * получить список фотографий для пользователя
+     * @param type $userId
+     * @param type $error
+     * @return array массив фотографий
+     */
+    public function getPhotoList($userId, &$error) {
+        $stmt = $this->link->prepare(' select photo_id, user_id, photo_name, header, description from photo where user_id = ? ');
+        if (!$stmt) {
+            $error = $this->link->error;
+            return null;
+        }
+        if (!$stmt->bind_param('i', $userId)) {
+            $error = $this->link->error;
+            return null;
+        }
+        if (!$stmt->execute()) {
+            $error = $this->link->error;
+            return null;
+        }
+        if (!$stmt->bind_result($photoId, $userId, $photoName, $header, $description)) {
+            $error = $this->link->error;
+            return null;
+        }
+        $photoArray = array();
+        $n = 0;
+        while ($stmt->fetch()) {
+            $photo = new Photo($photoId, $userId, $photoName, $header, $description, '');
+            $photoArray[$n] = $photo;
+            $n++;
+        }
+        return $photoArray;
     }
     
     public function existUser($login, &$error) {
