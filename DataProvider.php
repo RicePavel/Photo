@@ -36,8 +36,41 @@ class DataProvider {
         $this->link->rollback();
     }
     
+    /**
+     * удалить фотографии
+     * @param type $photoIdArray
+     * @param type $error
+     * @return boolean
+     */
     public function deletePhotos($photoIdArray, &$error) {
-        
+        // пройти массив в цикле
+        $this->startTransaction();
+        $ok = true;
+        foreach ($photoIdArray as $photoId) {
+            // для каждого запроса удалить
+            $stmt = $this->link->prepare(' delete from photo where photo_id = ? ');
+            if (!$stmt) {
+                $error = $this->link->error;
+                $ok = false;
+                break;
+            }
+            if (!$stmt->bind_param('i', $photoId)) {
+                $error = $this->link->error;
+                $ok = false;
+                break;
+            }
+            if (!$stmt->execute()) {
+                $error = $this->link->error;
+                $ok = false;
+                break;
+            }
+        }
+        if ($ok) {
+            $this->commitTransaction();
+        } else {
+            $this->rollbackTransaction();
+        }
+        return $ok;
     }
      
     /**
@@ -62,6 +95,34 @@ class DataProvider {
             return false;
         }
         return true;
+    }
+    
+    /**
+     * 
+     * @param type $photoIdArray
+     * @param type $error
+     * @return array массив объектов Photo
+     */
+    public function getPhotos($photoIdArray, &$error) {
+        // для каждого элемента массива
+        $error = '';
+        $photoObjArray = array();
+        $n = 0;
+        foreach ($photoIdArray as $photoId) {
+            // получить объект
+            $photo = $this->getPhoto($photoId, $error);
+            // если нет ошибок
+            if ($photo != null && $error == '') {
+                // добавить объект в массив
+                $photoObjArray[$n] = $photo;
+            } else {
+            // иначе
+                // прервать, returns
+               return $photoObjArray;
+            }
+            $n++;
+        }
+        return $photoObjArray;
     }
     
     /**
@@ -101,13 +162,24 @@ class DataProvider {
      * @param type $error
      * @return array массив фотографий
      */
-    public function getPhotoList($userId, &$error) {
-        $stmt = $this->link->prepare(' select photo_id, user_id, photo_name, header, description from photo where user_id = ? ');
+    public function getPhotoList($userId, $searchText, &$error) {
+        $sql = ' select photo_id, user_id, photo_name, header, description from photo where user_id = ? ';
+        if ($searchText != null && $searchText != '') {
+            $sql .= ' and ( header like ? or description like ? ) ';
+        }
+        $stmt = $this->link->prepare($sql);
         if (!$stmt) {
             $error = $this->link->error;
             return null;
         }
-        if (!$stmt->bind_param('i', $userId)) {
+        $ok = true;
+        if ($searchText != null && $searchText != '') {
+            $fullSearchText = '%' . $searchText . '%';
+            $ok = $stmt->bind_param('iss', $userId, $fullSearchText, $fullSearchText);
+        } else {
+            $ok = $stmt->bind_param('i', $userId);
+        }
+        if (!$ok) {
             $error = $this->link->error;
             return null;
         }

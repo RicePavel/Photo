@@ -47,10 +47,12 @@ class Controller {
                     $this->changePhotoForm();
                 } else if ($action == 'changePhoto') {
                     $this->changePhoto();
+                } else if ($action = 'deletePhotos') {
+                    $this->deletePhotos();
                 } else if ($action == 'logout') {
                     // выход из системы
                     $this->logout();
-                } 
+                }
                 // иначе
             } else {
                 // перенаправить на страницу для непользователей
@@ -64,29 +66,68 @@ class Controller {
         header('location: ?action=forNotAuthUser');
     }
 
-    private function photosList() {
+    private function photosList($error = '') {
         // получить ИД текущего пользователя
         $userId = $this->getCurrentUserId();
-            // получить список фотографий из базы
-        $error = '';
-        $photoArray = $this->dataProvider->getPhotoList($userId, $error);
+        // получить список фотографий из базы
+        // если передана строка поиска
+        $searchText = '';
+        if (isset($_REQUEST['searchText']) && $_REQUEST['searchText'] != '') {
+            // передать её в функцию
+            $searchText = trim($_REQUEST['searchText']);
+        }
+        $photoArray = $this->dataProvider->getPhotoList($userId, $searchText, $error);
         if ($photoArray != null) {
             $this->setPathToPhotos($photoArray, $userId);
         }
         require 'renders/PhotoList.php';
     }
-    
+
     private function setPathToPhotos($photoArray, $userId) {
         $dirName = './photos/' . $userId;
         foreach ($photoArray as $photo) {
-           $photo->path = $dirName . '/' . $photo->photoName; 
+            $photo->path = $dirName . '/' . $photo->photoName;
         }
     }
-    
+
     private function deletePhotos() {
-        
+        // получить массив ИД фотографий
+        // удалить их из бд
+        $error = '';
+        $photoIdArray = array();
+        if (isset($_REQUEST['photoId'])) {
+            $photoIdArray = $_REQUEST['photoId'];
+        }
+        // получить массив объектов Photo
+        $photoArray = $this->dataProvider->getPhotos($photoIdArray, $error);
+        if ($error == '') {
+            $userId = $this->getCurrentUserId();
+            $this->setPathToPhotos($photoArray, $userId);
+            $ok = $this->dataProvider->deletePhotos($photoIdArray, $error);
+            // если успешно удалились из бд
+            if ($ok) {
+                // удалить из файловой системы
+                $this->deletePhotosFromServer($photoArray, $error);
+            }
+        }
+        // перенаправить на список фотографий
+        header('location: ?action=photosList');
     }
-    
+
+    private function deletePhotosFromServer($photoArray, &$error) {
+        // если нет ошибок
+        if ($error == '') {
+            // цикл по массиву объектов
+            foreach ($photoArray as $photo) {
+                // удалить каждую фотографию
+                $ok = unlink($photo->path);
+                if (!$ok) {
+                    $error = 'произошла ошибка во время удаления файла';
+                }
+            }
+        }
+    }
+
     private function changePhotoForm() {
         // получить данные фотографии
         // показать форму
@@ -99,26 +140,26 @@ class Controller {
             require 'renders/PhotoChange.php';
         }
     }
-    
+
     private function changePhoto() {
         // получить данные из запроса
         if (isset($_REQUEST['photoId']) && $_REQUEST['photoId'] != '') {
-           $photoId = $_REQUEST['photoId'];
-           $header = $_REQUEST['header'];
-           $description = $_REQUEST['description'];
-        // изменить данные фотографии
-           $error = '';
-           $ok = $this->dataProvider->changePhoto($photoId, $header, $description, $error);
-        // если успешно
-           if ($ok) {
-            // перенаправить на список
-               header('location: ?action=photosList');
-           } else {
-            // если неуспешно
+            $photoId = $_REQUEST['photoId'];
+            $header = $_REQUEST['header'];
+            $description = $_REQUEST['description'];
+            // изменить данные фотографии
+            $error = '';
+            $ok = $this->dataProvider->changePhoto($photoId, $header, $description, $error);
+            // если успешно
+            if ($ok) {
+                // перенаправить на список
+                header('location: ?action=photosList');
+            } else {
+                // если неуспешно
                 // получить данные фотографии
                 // отобразить форму изменения
-               $this->changePhotoForm();
-           }
+                $this->changePhotoForm();
+            }
         }
     }
 
@@ -131,41 +172,37 @@ class Controller {
         $userId = $this->getCurrentUserId();
         if ($userId != null) {
             // получить массив файлов
-            $files = $_FILES['photos'];
-            // для каждого файла
-            $error = '';
-            $n = 0;
-            foreach ($files['name'] as $fileName) {
-                // проверить его расширение
-                if (!$this->checkFileType($fileName)) {
-                    $error = 'неправильный формат файла: все файлы должны быть изображениями';
-                    break;
+            if (isset($_FILES['photos'])) {
+                $files = $_FILES['photos'];
+                // для каждого файла
+                $error = '';
+                if (!$this->checkFileTypes($files)) {
+                    $error = 'Неправильный тип файлов. Все файлы должны быть изображениями.';
                 }
-                $n++;
-            }
-
-            $n = 0;
-            // если нет ошибок
-            if ($error == '') {
-                // каждый файл
-                foreach ($files['name'] as $fileName) {
-                    // сохранить файл, получить название файла
-                    $fileName = $this->saveFileToServer($files, $n, $userId, $error);
-                    // если сохранение прошло успешно
-                    if ($fileName != null) {
-                        // сохранить файл в БД                    
-                        // записать в бд
-                        $fileId = $this->saveFileToDatabase($files, $n, $userId, $fileName, $error);
+                // если нет ошибок
+                if ($error == '') {
+                    // каждый файл
+                    $n = 0;
+                    foreach ($files['name'] as $fileName) {
+                        // сохранить файл, получить название файла
+                        $fileName = $this->saveFileToServer($files, $n, $userId, $error);
+                        // если сохранение прошло успешно
+                        if ($fileName != null) {
+                            // сохранить файл в БД                    
+                            // записать в бд
+                            $fileId = $this->saveFileToDatabase($files, $n, $userId, $fileName, $error);
+                        }
+                        $n++;
                     }
                 }
-                // если есть ошибки
-                if ($error != '') {
-                    // вызвать метод вывода списка файлов 
-                    $this->photosList();
-                } else {
-                    // перенаправить на список
-                    header('location: ?action=photosList');
-                }
+            }
+            // если есть ошибки
+            if ($error != '') {
+                // вызвать метод вывода списка файлов 
+                $this->photosList($error);
+            } else {
+                // перенаправить на список
+                header('location: ?action=photosList');
             }
         }
     }
@@ -257,6 +294,20 @@ class Controller {
      * @return boolean
      */
     private function checkFileType($fileName) {
+        return true;
+    }
+
+    /**
+     * проверить правильность типов загружаемых файлов
+     * @param type $files
+     * @return bool
+     */
+    private function checkFileTypes($files) {
+        foreach ($files['type'] as $type) {
+            if (strpos($type, 'image') === false) {
+                return false;
+            }
+        }
         return true;
     }
 
