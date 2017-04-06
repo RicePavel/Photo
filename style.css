@@ -28,3 +28,7 @@ and open the template in the editor.
     max-width: 600px;
     max-height: 600px;
 }
+
+.uploadIndicator {
+    display: none;
+}

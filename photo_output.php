@@ -6,10 +6,12 @@
  * and open the template in the editor.
  */
 
-?>
+require_once 'Controller.php';
 
-<br/>
-<a href="?action=auth">Авторизация</a>
-<br/>
-<br/>
-<a href="?action=registration" >Регистрация</a>
+session_start();
+// put your code here
+        
+// вывод информации
+ 
+$controller = new Controller();
+$controller->outputFile();

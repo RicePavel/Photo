@@ -16,9 +16,11 @@
     }
 ?>
 
+<a href="?action=forNotAuthUser">В начало</a> <br/><br/>
+    
 <form method="POST" action="?action=auth" >
     Логин: <input type="text" name="login" /> <br/>
     Пароль: <input type="password" name="password" /> <br/>
-    <input type="submit" value="Отправить" name="submit" />
+    <input type="submit" value="Войти" name="submit" />
 </form>
 

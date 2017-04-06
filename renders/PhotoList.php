@@ -18,11 +18,13 @@ require 'header.php';
     }
 ?>
 
-<form method="POST" enctype="multipart/form-data" action="?action=addPhotos" >
+<form method="POST" enctype="multipart/form-data" action="?action=addPhotos" class="uploadForm" >
     <input type="file" name="photos[]" multiple /> <br/>
     <input type="submit" name="submit" value="Загрузить фотографии" />
 </form>
     <br/>
+    
+    <div class="uploadIndicator" >Идет загрузка файлов...</div> <br/>
     
     <form method="GET" action="?action=photosList" > 
         <input type="text" name="searchText" value="<?= isset($_REQUEST['searchText']) ? $_REQUEST['searchText'] : '' ?>" />
@@ -42,7 +44,8 @@ require 'header.php';
     ?>
             <div class="photo_container">
                 <div> <?= $photo->photoName ?> </div>
-                <div> <img src='<?= $photo->path ?>' /> </div>
+                <!-- <div> <img src='<?= $photo->path ?>' /> </div> -->
+                <div> <img src='photo_output.php?photoId=<?= $photo->photoId ?>' /> </div>
                 <div> <b> <?= $photo->header ?> </b>  </div>
                 <div> <?= $photo->description ?>  </div>
                 <div> <a href='?action=changePhotoForm&photoId=<?= $photo->photoId ?>' >Изменить</a> </div>

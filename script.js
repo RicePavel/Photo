@@ -23,6 +23,12 @@ $(document).ready(function() {
             input.prop('checked', true);
         }
     });
+    
+    // показать индикатор загрузки
+    $('.uploadForm').submit(function() {
+        $('.uploadIndicator').show();
+    });
+    
 });
     
 

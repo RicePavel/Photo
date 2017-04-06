@@ -20,7 +20,7 @@ class DataProvider {
     public function __construct() {
         $this->link = new mysqli($this::HOST, $this::USER, $this::PASSWORD, $this::DATABASE);
         if ($this->link->connect_errno) {
-            echo 'не удалось подключиться в БД';
+            echo 'не удалось подключиться в БД <br/>';
         }
     }
 
@@ -218,6 +218,7 @@ class DataProvider {
             return false;
         }
         // если количество строк > 0
+        $stmt->store_result();
         if ($stmt->num_rows > 0) {
             return true;
         } else {
@@ -266,7 +267,7 @@ class DataProvider {
             return null;
         }
     }
-
+    
     /**
      * 
      * @param type $userId

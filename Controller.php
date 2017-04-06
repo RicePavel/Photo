@@ -47,7 +47,7 @@ class Controller {
                     $this->changePhotoForm();
                 } else if ($action == 'changePhoto') {
                     $this->changePhoto();
-                } else if ($action = 'deletePhotos') {
+                } else if ($action == 'deletePhotos') {
                     $this->deletePhotos();
                 } else if ($action == 'logout') {
                     // выход из системы
@@ -61,6 +61,35 @@ class Controller {
         }
     }
 
+    public function outputFile() {
+        // получить ИД файла
+        if (isset($_REQUEST['photoId'])) {
+            $photoId = $_REQUEST['photoId'];
+            // получить ИД пользователя
+            $userId = $this->getCurrentUserId();
+            // если ИД пользователя != null
+            if ($userId != null) {
+                // получить данные фотографии
+                $error = '';
+                $photo = $this->dataProvider->getPhoto($photoId, $error);
+                if ($photo != null && $error == '') {
+                    $this->setPathToPhotos(array ($photo), $userId);
+                // проверить пользователя
+                    if ($photo->userId == $userId) {
+                        // если пользователь правильный
+                        header('Content-type: image/jpeg');
+                        header('Content-disposition: inline; filename=image.jpeg');
+                        // вывести заголовки
+                        // вывести контент фотографии
+                        $fp = fopen($photo->path, 'r');
+                        $data = fread($fp, filesize($photo->path));
+                        echo $data;
+                    }
+                }
+            }
+        }
+    }
+    
     private function logout() {
         unset($_SESSION['userId']);
         header('location: ?action=forNotAuthUser');
@@ -162,11 +191,11 @@ class Controller {
             }
         }
     }
-
+    
     private function getCurrentUserId() {
         return (isset($_SESSION['userId']) ? $_SESSION['userId'] : null);
     }
-
+    
     private function addPhotos() {
         // получить ИД текущего пользователя
         $userId = $this->getCurrentUserId();

@@ -16,6 +16,7 @@ and open the template in the editor.
         <?php
         
         require_once 'Controller.php';
+        error_reporting(0);
         
         // put your code here
         
